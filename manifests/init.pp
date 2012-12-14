@@ -4,7 +4,7 @@ class domysqldb (
   # ---------------
   # setup defaults
 
-  $root_password = 'admin',
+  $root_password = 'admLn**',
   $dbs = {},
   $dbs_default = {},
   $user = 'root'
