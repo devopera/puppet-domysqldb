@@ -37,7 +37,7 @@ class domysqldb (
     ubuntu, debian: {
       # MySQL 5.5 is default in 12.04
       file { 'common-mysqldb-five-five-common' :
-        path => '/tmp/puppet-common-mysqldb-five-five-common.txt',
+        path => '/tmp/puppet-docommon-mysqldb-five-five-common.txt',
       }
     }
   }
