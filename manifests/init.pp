@@ -6,7 +6,9 @@ class domysqldb (
 
   $root_password = 'admLn**',
   $dbs = {},
-  $dbs_default = {},
+  $dbs_default = {
+    require => [Class['mysql'],Class['mysql::server']],
+  },
   $user = 'root'
 
   # end of class arguments
