@@ -9,7 +9,22 @@ class domysqldb (
   $dbs_default = {
     require => [Class['mysql'],Class['mysql::server']],
   },
-  $user = 'root'
+  $user = 'root',
+  $settings = {
+    'mysqld' => {
+#      'query_cache_limit'     => '5M',
+#      'query_cache_size'      => '128M',
+      'port'                  => 3306,
+#      'skip-external-locking' => true,
+#      'replicate-ignore-db'   => [
+#        'tmp_table',
+#        'whateveryouwant'
+#      ]
+    },
+    'client' => {
+      'port' => 3306
+    },
+  },
 
   # end of class arguments
   # ----------------------
@@ -51,6 +66,14 @@ class domysqldb (
   class { 'mysql::server': 
     config_hash => { 'root_password' => $root_password },
     require => Class['mysql'],
+  }
+
+  # setup [non-out-of-the-box] config and restart mysqld
+  mysql::server::config { 'domysqldb':
+    settings => $settings,
+    notify_service => true,
+    require => Class['mysql::server'],
+    creates => '/etc/mysql/conf.d/domysqldb.cnf',
   }
 
   # clean up insecure accounts and test database
