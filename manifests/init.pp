@@ -68,12 +68,11 @@ class domysqldb (
     require => Class['mysql'],
   }
 
-  # setup [non-out-of-the-box] config and restart mysqld
+  # setup [non-out-of-the-box] config in /etc/mysql/conf.d/domysqldb.cnf and restart mysqld
   mysql::server::config { 'domysqldb':
     settings => $settings,
     notify_service => true,
     require => Class['mysql::server'],
-    creates => '/etc/mysql/conf.d/domysqldb.cnf',
   }
 
   # clean up insecure accounts and test database
