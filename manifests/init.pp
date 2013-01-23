@@ -74,8 +74,8 @@ class domysqldb (
 
   # derive variables and append to settings file using _additional var
   if $innodb_buffer_pool_size == undef {
-    $memf_array = split($::memoryfree,' ')
-    $innodb_buffer_pool_size_calc = inline_template('innodb_buffer_pool_size = <%= (memf_array[0].to_f * 1000 * 0.5).floor -%>M')
+    $memf_array = split($::memorytotal,' ')
+    $innodb_buffer_pool_size_calc = inline_template('innodb_buffer_pool_size = <%= (memf_array[0].to_f * 1000 * 0.35).floor -%>M')
   }
 
   # install REMI repository to get MySQL 5.5 on Centos 6
