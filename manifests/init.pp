@@ -154,7 +154,7 @@ define domysqldb::runonce (
 ) {
   # run script as mysql root
   exec { "exec-${title}" :
-    command => "/usr/bin/mysql -u root --password='${::domysqldb::root_password}' < $command; touch /tmp/puppet-domysqldb-runonce-${title}",
+    command => "/usr/bin/mysql -u root --password='${::domysqldb::root_password}' < $command && touch /tmp/puppet-domysqldb-runonce-${title}",
     creates => "/tmp/puppet-domysqldb-runonce-${title}",
   }
 }
