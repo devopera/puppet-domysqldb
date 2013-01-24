@@ -131,11 +131,11 @@ class domysqldb (
     settings_additional => "# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n",
     notify_service => true,
     require => Class['mysql::server'],
-  }->
-  exec { 'scrub-old-mysqld-log-file':
-    path => '/bin:/usr/bin',
-    command => 'rm /var/log/mysqld.log',
   }
+  #exec { 'scrub-old-mysqld-log-file':
+  #  path => '/bin:/usr/bin',
+  #  command => 'rm /var/log/mysqld.log',
+  #}
 
   # clean up insecure accounts and test database
   class { 'mysql::server::account_security':
