@@ -81,6 +81,14 @@ class domysqldb (
   } else {
     $innodb_buffer_pool_size_calc = "innodb_buffer_pool_size = ${innodb_buffer_pool_size}"
   }
+  
+  # round log file size from bytes to MB
+  if ($innodb_log_file_size_bytes == undef) {
+    $innodb_log_file_size_calc = ""
+  } else {
+    $innodb_log_file_size = $innodb_log_file_size_bytes / 1048576
+    $innodb_log_file_size_calc = "innodb_log_file_size = ${innodb_log_file_size}M"
+  }
 
   # install REMI repository to get MySQL 5.5 on Centos 6
   case $operatingsystem {
@@ -161,7 +169,7 @@ class domysqldb (
   # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
   file { '/etc/mysql/conf.d/domysqldb.cnf':
     ensure  => file,
-    content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n",
+    content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n${innodb_log_file_size_calc}\n",
     owner   => 'root',
     group   => $mysql::config::root_group,
     mode    => '0644',
