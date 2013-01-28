@@ -7,30 +7,31 @@ class domysqldb (
   $root_password = 'admLn**',
   $dbs = {},
   $dbs_default = {
-    require => [Class['mysql'],Class['mysql::server'],Class['mysql::server::account_security']],
+    require => [Class['mysql::server::account_security']],
   },
-  $user = 'root',
+
+  # my.cnf settings
+  $user = 'mysql',
+  $config_file       = $mysql::params::config_file,
+  $socket            = $mysql::params::socket,        # '/var/lib/mysql/data/mysql.sock'
+  $port              = $mysql::params::port,          # 3306
+  $service_name      = $mysql::params::service_name,  # mysqld
+  $bind_address      = $mysql::params::bind_address,  # '127.0.0.1'
+  $pidfile           = $mysql::params::pidfile,       # '/var/run/mysqld/data/mysql.pid'
+  $basedir           = $mysql::params::basedir,       # '/usr'
+  $datadir           = $mysql::params::datadir,       # '/var/lib/mysql/data/'
+  $ssl               = $mysql::params::ssl,           # false
+  $ssl_ca            = $mysql::params::ssl_ca,        # '/etc/mysql/cacert.pem'
+  $ssl_cert          = $mysql::params::ssl_cert,      # '/etc/mysql/server-cert.pem'
+  $ssl_key           = $mysql::params::ssl_key,       # '/etc/mysql/server-key.pem'
+  $log_error         = '/var/log/mysql/error.log',    # force Centos/Ubuntu parity
+
+  # dynamic settings (if undefined)
   $innodb_buffer_pool_size = undef,
+
+  # other settings
   $settings = {
     'mysqld' => {
-      # redundant values already set in my.cnf
-      #
-      # 'user'                      => 'mysql',
-      # 'port'                      => 3306,
-      # 'default_storage_engine'    => 'innodb',
-      # 'socket'                    => '/var/lib/mysql/data/mysql.sock',
-      # 'pid_file'                  => '/var/run/mysqld/data/mysql.pid',
-      # 'datadir'                   => '/var/lib/mysql/data/',
-      # 'basedir'                   => '/usr',
-      # 'tmpdir'                    => '/tmp',
-      # 'skip-external-locking'     => true,
-      # 'bind-address'              => '127.0.0.1',
-      # 'log_error'                 => '/var/lib/mysql/data/mysql-error.log', (system dependent)
-      # 'expire_logs_days'          => 14,
-      #
-      # can't be changed without wiping and re-creating log files
-      # 'innodb_log_file_size'      => '64M',
-      #
       'key_buffer_size'           => '32M',
       # INNODB
       'innodb'                    => 'FORCE',
@@ -107,33 +108,32 @@ class domysqldb (
     }
   }
 
-  $log_error = '/var/log/mysql/error.log'
-  # install and setup mysql client and server
+  # initialise variables
+  $settings_via_template = template('mysql/my.conf.cnf.erb') 
+
+  # install mysql client
   class { 'mysql':
     require => File['common-mysqldb-five-five-common'],
   }->
+  package { 'mysql-server':
+    ensure => 'present',
+    name   => $mysql::params::server_package_name,
+  }->
+  
   # ensure all the necessary directories exist
-  file { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
+  file { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data', '/etc/mysql', '/etc/mysql/conf.d']:
     ensure => 'directory',
     owner => 'mysql',
     group => 'mysql',
+    mode => 0755,
   }->
-  class { 'mysql::server': 
-    config_hash => {
-      # force error log to same place for CentOS and Ubuntu
-      'log_error' => $log_error,
-      'root_password' => $root_password,
-    },
-  }
-
-  $settings_via_template = template('mysql/my.conf.cnf.erb') 
-  # shutdown mysql
-  exec { 'domysqldb-shutdown':
-    path => '/sbin',
-    command => "service ${mysql::params::service_name} stop",
-    require => [Class['mysql::server'], Class['mysql::config']],  
+  # delete old binary log file if wrong size (!=64M)
+  exec { 'domysqldb-scrub-old-binlog-wrong-size' :
+    path => '/bin:/usr/bin',
+    command => "rm -rf /var/lib/mysql/ib_logfile*",
+    onlyif => 'test `stat -c \'%s\' /var/lib/mysql/ib_logfile0` -ne 67108864', 
   }->
-  # delete old log file if it was created
+  # delete old log file if in wrong place
   exec { 'domysqldb-scrub-old-mysqld-log-file':
     path => '/bin:/usr/bin',
     command => 'rm /var/log/mysqld.log',
@@ -146,29 +146,50 @@ class domysqldb (
     user => 'mysql',
     group => 'mysql',
   }->
-  # delete old binary log file if wrong size (!=64M)
-  exec { 'domysqldb-scrub-old-binlog-wrong-size' :
-    path => '/bin:/usr/bin',
-    command => "rm -rf /var/lib/mysql/ib_logfile*",
-    onlyif => 'test `stat -c \'%s\' /var/lib/mysql/ib_logfile0` -ne 67108864', 
+  
+  # setup generic my.cnf
+  file { '/etc/my.cnf':
+    content => template('domysqldb/my.cnf.erb'),
+    owner  => 'root',
+    group  => $mysql::params::root_group,
+    mode    => '0644',
   }->
-  # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
+  # setup [non-out-of-the-box] config
   file { "/etc/mysql/conf.d/domysqldb.cnf":
     ensure  => file,
     content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n",
     owner   => 'root',
-    group   => $mysql::config::root_group,
+    group   => $mysql::params::root_group,
     mode    => '0644',
   }->
-  # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
-  exec { 'domysqldb-startup' :
-    path => '/sbin',
-    command => "service ${mysql::params::service_name} start",  
+  # set root password for root-auto-access
+  file { '/root/.my.cnf':
+    content => template('mysql/my.cnf.pass.erb'),
+    owner  => 'root',
+    group  => $mysql::params::root_group,
+    mode   => '0400',
   }->
+  
+  # start the service for the first time
+  service { 'mysqld':
+    ensure   => 'running',
+    name     => $service_name,
+    enable   => true,
+    require  => Package['mysql-server'],
+    provider => $mysql::params::service_provider,
+  }->
+  
+  # set the root password if not same
+  exec { 'set_mysql_rootpw':
+    command   => "mysqladmin -u root '' password '${root_password}'",
+    logoutput => true,
+    unless    => "mysqladmin -u root -p'${root_password}' status > /dev/null",
+    path      => '/usr/local/sbin:/usr/bin:/usr/local/bin',
+    require   => File['/etc/mysql/conf.d'],
+  }->
+
   # clean up insecure accounts and test database
-  class { 'mysql::server::account_security':
-    require => Class['mysql::server'],
-  }
+  class { 'mysql::server::account_security': }
 
   # create databases
   create_resources(mysql::db, $dbs, $dbs_default)
