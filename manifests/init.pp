@@ -7,7 +7,7 @@ class domysqldb (
   $root_password = 'admLn**',
   $dbs = {},
   $dbs_default = {
-    require => [Class['mysql'],Class['mysql::server']],
+    require => [Class['mysql'],Class['mysql::server'],Class['mysql::server::account_security']],
   },
   $user = 'root',
   $innodb_buffer_pool_size = undef,
@@ -107,6 +107,7 @@ class domysqldb (
     }
   }
 
+  $log_error = '/var/log/mysql/error.log'
   # install and setup mysql client and server
   class { 'mysql':
     require => File['common-mysqldb-five-five-common'],
@@ -120,23 +121,50 @@ class domysqldb (
   class { 'mysql::server': 
     config_hash => {
       # force error log to same place for CentOS and Ubuntu
-      'log_error' => '/var/log/mysql/error.log',
+      'log_error' => $log_error,
       'root_password' => $root_password,
     },
   }
 
-  # setup [non-out-of-the-box] config in /etc/mysql/conf.d/domysqldb.cnf and restart mysqld
-  mysql::server::config { 'domysqldb':
-    settings => $settings,
-    settings_additional => "# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n",
-    notify_service => true,
-    require => Class['mysql::server'],
-  }
-  #exec { 'scrub-old-mysqld-log-file':
-  #  path => '/bin:/usr/bin',
-  #  command => 'rm /var/log/mysqld.log',
-  #}
-
+  $settings_via_template = template('mysql/my.conf.cnf.erb') 
+  # shutdown mysql
+  exec { 'domysqldb-shutdown':
+    path => '/sbin',
+    command => "service ${mysql::params::service_name} stop",
+    require => [Class['mysql::server'], Class['mysql::config']],  
+  }->
+  # delete old log file if it was created
+  exec { 'domysqldb-scrub-old-mysqld-log-file':
+    path => '/bin:/usr/bin',
+    command => 'rm /var/log/mysqld.log',
+    onlyif => 'test -f /var/log/mysqld.log',
+  }->
+  # create new log file as mysql user
+  exec { 'domysqldb-create-new-log-file':
+    path => '/bin:/usr/bin',
+    command => "touch $log_error",
+    user => 'mysql',
+    group => 'mysql',
+  }->
+  # delete old binary log file if wrong size (!=64M)
+  exec { 'domysqldb-scrub-old-binlog-wrong-size' :
+    path => '/bin:/usr/bin',
+    command => "rm -rf /var/lib/mysql/ib_logfile*",
+    onlyif => 'test `stat -c \'%s\' /var/lib/mysql/ib_logfile0` -ne 67108864', 
+  }->
+  # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
+  file { "/etc/mysql/conf.d/domysqldb.cnf":
+    ensure  => file,
+    content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n",
+    owner   => 'root',
+    group   => $mysql::config::root_group,
+    mode    => '0644',
+  }->
+  # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
+  exec { 'domysqldb-startup' :
+    path => '/sbin',
+    command => "service ${mysql::params::service_name} start",  
+  }->
   # clean up insecure accounts and test database
   class { 'mysql::server::account_security':
     require => Class['mysql::server'],
