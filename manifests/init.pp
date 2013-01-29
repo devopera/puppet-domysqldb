@@ -30,10 +30,10 @@ class domysqldb (
       # 'tmpdir'                    => '/tmp',
       # 'skip-external-locking'     => true,
       # 'bind-address'              => '127.0.0.1',
-      # 'log_error'                 => '/var/lib/mysql/data/mysql-error.log', (system dependent)
       # 'expire_logs_days'          => 14,
       #
       'key_buffer_size'           => '32M',
+      'log_error'                 => '/var/log/mysql/error.log',
       # INNODB
       'innodb'                    => 'FORCE',
       'innodb_log_files_in_group' => 2,
@@ -117,7 +117,6 @@ class domysqldb (
     }
   }
 
-  $log_error = '/var/log/mysql/error.log'
   # install and setup mysql client and server
   class { 'mysql':
     require => File['common-mysqldb-five-five-common'],
@@ -128,14 +127,13 @@ class domysqldb (
     owner => 'mysql',
     group => 'mysql',
   }->
+  # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ files
   class { 'mysql::server': 
     config_hash => {
-      # force error log to same place for CentOS and Ubuntu
-      'log_error' => $log_error,
       'root_password' => $root_password,
     },
   }
-
+  
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
   # shutdown mysql, but only after mysql::config has completely finished
   exec { 'domysqldb-shutdown':
@@ -143,16 +141,10 @@ class domysqldb (
     command => "service ${mysql::params::service_name} stop",
     require => [Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
   }->
-  # delete old log file if it was created
-  #exec { 'domysqldb-scrub-old-mysqld-log-file':
-  #  path => '/bin:/usr/bin',
-  #  command => 'rm /var/log/mysqld.log',
-  #  onlyif => 'test -f /var/log/mysqld.log',
-  #}->
   # create new log file as mysql user
   exec { 'domysqldb-create-new-log-files':
     path => '/bin:/usr/bin',
-    command => "touch $log_error && touch /var/log/mysql/slow-query.log",
+    command => "touch ${settings['mysqld']['log_error']} && touch ${settings['mysqld']['slow_query_log_file']}",
     user => 'mysql',
     group => 'mysql',
   }
@@ -180,6 +172,12 @@ class domysqldb (
     path => '/sbin',
     command => "service ${mysql::params::service_name} start",  
   }->
+  # delete old log file if it was created
+  exec { 'domysqldb-scrub-old-mysqld-log-file':
+    path => '/bin:/usr/bin',
+    command => 'rm /var/log/mysqld.log',
+    onlyif => 'test -f /var/log/mysqld.log',
+  }->
   # clean up insecure accounts and test database
   class { 'mysql::server::account_security':
     require => Class['mysql::server'],
@@ -188,17 +186,5 @@ class domysqldb (
   # create databases
   create_resources(mysql::db, $dbs, $dbs_default)
 
-}
-
-# run a MySQL script once on a new system
-define domysqldb::runonce (
-  # @param command {string} name of script file to run
-  $command = $title,
-) {
-  # run script as mysql root
-  exec { "exec-${title}" :
-    command => "/usr/bin/mysql -u root --password='${::domysqldb::root_password}' < $command && touch /tmp/puppet-domysqldb-runonce-${title}",
-    creates => "/tmp/puppet-domysqldb-runonce-${title}",
-  }
 }
 
