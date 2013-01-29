@@ -140,13 +140,28 @@ class domysqldb (
     path => '/sbin',
     command => "service ${mysql::params::service_name} stop",
     require => [Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
-  }->
-  # create new log file as mysql user
-  exec { 'domysqldb-create-new-log-files':
-    path => '/bin:/usr/bin',
-    command => "touch ${settings['mysqld']['log_error']} && touch ${settings['mysqld']['slow_query_log_file']}",
-    user => 'mysql',
-    group => 'mysql',
+  }
+
+  # if the log files have been moved, create new log files as mysql user
+  if ($settings['mysqld']['log_error'] != undef) {
+    exec { 'domysqldb-create-new-log-error':
+      path => '/bin:/usr/bin',
+      command => "touch ${settings['mysqld']['log_error']}",
+      user => 'mysql',
+      group => 'mysql',
+      before => Exec['domysqldb-startup'],
+      require => Exec['domysqldb-shutdown'],
+    }
+  }
+  if ($settings['mysqld']['slow_query_log_file'] != undef) {
+    exec { 'domysqldb-create-new-log-slow':
+      path => '/bin:/usr/bin',
+      command => "touch ${settings['mysqld']['slow_query_log_file']}",
+      user => 'mysql',
+      group => 'mysql',
+      before => Exec['domysqldb-startup'],
+      require => Exec['domysqldb-shutdown'],
+    }
   }
   # delete old binary log files and deps if wrong size
   if ($innodb_log_file_size_bytes != undef) {
@@ -154,8 +169,8 @@ class domysqldb (
       path => '/bin:/usr/bin',
       command => "rm -rf /var/lib/mysql/ib_logfile* && rm -rf /var/lib/mysql/ibdata*",
       onlyif => "test `stat -c \'%s\' /var/lib/mysql/ib_logfile0` -ne ${innodb_log_file_size_bytes}",
-      before => File['/etc/mysql/conf.d/domysqldb.cnf'],
-      require => Exec['domysqldb-create-new-log-files'],
+      before => Exec['domysqldb-startup'],
+      require => Exec['domysqldb-shutdown'],
     }
   }
   # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
@@ -165,22 +180,28 @@ class domysqldb (
     owner   => 'root',
     group   => $mysql::config::root_group,
     mode    => '0644',
-    require => Exec['domysqldb-create-new-log-files'],
-  }->
+    before => Exec['domysqldb-startup'],
+    require => Exec['domysqldb-shutdown'],
+  }
+
   # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
   exec { 'domysqldb-startup' :
     path => '/sbin',
     command => "service ${mysql::params::service_name} start",  
-  }->
-  # delete old log file if it was created
-  exec { 'domysqldb-scrub-old-mysqld-log-file':
-    path => '/bin:/usr/bin',
-    command => 'rm /var/log/mysqld.log',
-    onlyif => 'test -f /var/log/mysqld.log',
+    require => Exec['domysqldb-shutdown'],
   }->
   # clean up insecure accounts and test database
   class { 'mysql::server::account_security':
     require => Class['mysql::server'],
+  }
+  # delete old log file if it is now redundant
+  if (($settings['mysqld']['log_error'] != undef) and ($settings['mysqld']['log_error'] != '/var/log/mysqld.log')) {
+    exec { 'domysqldb-scrub-old-mysqld-log-file':
+      path => '/bin:/usr/bin',
+      command => 'rm /var/log/mysqld.log',
+      onlyif => 'test -f /var/log/mysqld.log',
+      require => Exec['domysqldb-startup'],
+    }
   }
 
   # create databases
