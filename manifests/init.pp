@@ -77,7 +77,12 @@ class domysqldb (
   # derive variables and append to settings file using _additional var
   if $innodb_buffer_pool_size == undef {
     $memf_array = split($::memorytotal,' ')
-    $innodb_buffer_pool_size_calc = inline_template('innodb_buffer_pool_size = <%= (memf_array[0].to_f * 1000 * 0.35).floor -%>M')
+    if ($::memorytotal =~ /GB/) {
+      $memf = inline_template('<%= (memf_array[0].to_f * 1000 * 0.35).floor -%>')
+    } else {
+      $memf = inline_template('<%= (memf_array[0].to_f * 0.35).floor -%>')
+    }
+    $innodb_buffer_pool_size_calc = "innodb_buffer_pool_size = ${memf}M"
   } else {
     $innodb_buffer_pool_size_calc = "innodb_buffer_pool_size = ${innodb_buffer_pool_size}"
   }
