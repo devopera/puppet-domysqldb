@@ -58,7 +58,6 @@ class domysqldb (
       'table_open_cache'          => 2048,
       'tmp_table_size'            => '32M',
       # Logging
-      'log_bin'                   => '/var/lib/mysql/data/mysql-bin',
       'log_queries_not_using_indexes' => 0,
       'slow_query_log'            => 1,
       'slow_query_log_file'       => '/var/log/mysql/slow-query.log',
