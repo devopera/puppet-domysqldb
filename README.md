@@ -3,6 +3,14 @@ domysqldb
 
 MySQL puppet config that requires mysql module
 
+Changelog
+---------
+
+2013-02-25
+
+  * Modified runonce to write notifications to a parameterised ${notifier_dir}
+  * Added mysql-devel to the list of 5.5 packages installed
+
 Copyright and License
 ---------------------
 

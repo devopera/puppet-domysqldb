@@ -105,7 +105,7 @@ class domysqldb (
       }
       exec { 'common-mysqldb-five-five-install' :
         path => '/usr/bin:/bin',
-        command => 'yum -y --enablerepo=remi,remi-test install mysql mysql-server',
+        command => 'yum -y --enablerepo=remi,remi-test install mysql mysql-server mysql-devel',
         require => Exec['common-mysqldb-five-five-repo'],
       }
       file { 'common-mysqldb-five-five-common' :
