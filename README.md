@@ -6,10 +6,14 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2013-03-01
+
+  * Got rid of dynamic settings.  All settings are set normally using the $settings array.  If settings are undefined, sensible dynamic values are calculated.
+
 2013-02-25
 
-  * Modified runonce to write notifications to a parameterised ${notifier_dir}
-  * Added mysql-devel to the list of 5.5 packages installed
+  * Modified runonce to write notifications to a parameterised ${notifier_dir}.
+  * Added mysql-devel to the list of 5.5 packages installed.
 
 Copyright and License
 ---------------------

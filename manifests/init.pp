@@ -11,10 +11,6 @@ class domysqldb (
   },
   $user = 'root',
   
-  # dynamic settings
-  $innodb_buffer_pool_size = undef,
-  $innodb_log_file_size_bytes = 67108864,
-  
   # static settings
   $settings = {
     'mysqld' => {
@@ -37,6 +33,7 @@ class domysqldb (
       # INNODB
       'innodb'                    => 'FORCE',
       'innodb_log_files_in_group' => 2,
+      'innodb_log_file_size'      => '64M',
       'innodb_flush_log_at_trx_commit' => 1,
       'innodb_file_per_table'     => 1,
       # MyISAM
@@ -73,8 +70,8 @@ class domysqldb (
 
 ) {
 
-  # derive variables and append to settings file using _additional var
-  if $innodb_buffer_pool_size == undef {
+  # generate dynamic buffer_pool_size if not set
+  if ($settings['mysqld']['innodb_buffer_pool_size'] == undef) {
     $memf_array = split($::memorytotal,' ')
     if ($::memorytotal =~ /GB/) {
       $memf = inline_template('<%= (memf_array[0].to_f * 1000 * 0.35).floor -%>')
@@ -83,16 +80,19 @@ class domysqldb (
     }
     $innodb_buffer_pool_size_calc = "innodb_buffer_pool_size = ${memf}M"
   } else {
-    $innodb_buffer_pool_size_calc = "innodb_buffer_pool_size = ${innodb_buffer_pool_size}"
+    # no additional dynamic setting to include, just the defined one
+    $innodb_buffer_pool_size_calc = ''
   }
-  
-  # round log file size from bytes to MB
-  if ($innodb_log_file_size_bytes == undef) {
-    $innodb_log_file_size_calc = ""
+
+  if ($settings['mysqld']['innodb_log_file_size'] == undef) {
+    # log file is 5MB by default
+    $innodb_log_file_size_bytes = 5242880
   } else {
-    $innodb_log_file_size = $innodb_log_file_size_bytes / 1048576
-    $innodb_log_file_size_calc = "innodb_log_file_size = ${innodb_log_file_size}M"
+    # derive size from setting
+    $size_mb = $settings['mysqld']['innodb_log_file_size']
+    $innodb_log_file_size_bytes = inline_template('<%= (size_mb.to_f * 1024 * 1024).floor -%>')
   }
+  # notify { "debugging: ${innodb_log_file_size_bytes} bytes" : }
 
   # install REMI repository to get MySQL 5.5 on Centos 6
   case $operatingsystem {
@@ -180,7 +180,7 @@ class domysqldb (
   # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
   file { '/etc/mysql/conf.d/domysqldb.cnf':
     ensure  => file,
-    content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n${innodb_log_file_size_calc}\n",
+    content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
     owner   => 'root',
     group   => $mysql::config::root_group,
     mode    => '0644',
