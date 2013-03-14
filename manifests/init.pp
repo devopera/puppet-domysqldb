@@ -94,34 +94,35 @@ class domysqldb (
   }
   # notify { "debugging: ${innodb_log_file_size_bytes} bytes" : }
 
-  # install REMI repository to get MySQL 5.5 on Centos 6
+  # install MySQL client (REMI repository to get MySQL 5.5 on Centos 6)
+  if ! defined(Class['domysqldb::repoclient']) {
+    class { 'domysqldb::repoclient': }
+  }
+  # install MySQL server
   case $operatingsystem {
     centos, redhat: {
-      exec { 'common-mysqldb-five-five-repo' :
-        path => '/usr/bin:/bin',
-        command => 'rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-6.rpm',
-        user => 'root',
-        creates => '/etc/yum.repos.d/remi.repo',
-      }
       exec { 'common-mysqldb-five-five-install' :
         path => '/usr/bin:/bin',
-        command => 'yum -y --enablerepo=remi,remi-test install mysql mysql-server mysql-devel',
-        require => Exec['common-mysqldb-five-five-repo'],
-      }
+        command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
+        require => Class['domysqldb::repoclient'],
+      }->
       file { 'common-mysqldb-five-five-common' :
         path => '/tmp/runonce-common-mysqldb-five-five-common.txt',
-        require => Exec['common-mysqldb-five-five-install'],
       }
     }
     ubuntu, debian: {
       # MySQL 5.5 is default in 12.04
+      package { 'common-mysqldb-five-five-install' :
+        name => 'mysql-server',
+        ensure => 'present',
+      }->
       file { 'common-mysqldb-five-five-common' :
         path => '/tmp/puppet-docommon-mysqldb-five-five-common.txt',
       }
     }
   }
 
-  # install and setup mysql client and server
+  # configure mysql client and server
   class { 'mysql':
     require => File['common-mysqldb-five-five-common'],
   }->
