@@ -170,9 +170,15 @@ class domysqldb (
   }
   # delete old binary log files and deps if wrong size
   if ($innodb_log_file_size_bytes != undef) {
+    $tmptarget = '/tmp/puppet-domysqldb-old-ibdatas'
+    # ensure that a dump directory exists in /tmp
+    file { "$tmptarget" :
+      ensure => 'directory',
+      mode => 0777,
+    }->
     exec { 'domysqldb-scrub-old-binlog-wrong-size' :
       path => '/bin:/usr/bin',
-      command => "rm -rf /var/lib/mysql/ib_logfile* && rm -rf /var/lib/mysql/ibdata*",
+      command => "mv /var/lib/mysql/ib_logfile* $tmptarget && mv /var/lib/mysql/ibdata* $tmptarget",
       onlyif => "test `stat -c \'%s\' /var/lib/mysql/ib_logfile0` -ne ${innodb_log_file_size_bytes}",
       before => Exec['domysqldb-startup'],
       require => Exec['domysqldb-shutdown'],

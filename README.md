@@ -6,6 +6,10 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2013-04-10
+
+  * When the log files change size, the old ibdata/ib_logfiles now get moved to a safe (temporary) store in /tmp, rather than being deleted.
+
 2013-03-01
 
   * Got rid of dynamic settings.  All settings are set normally using the $settings array.  If settings are undefined, sensible dynamic values are calculated.
