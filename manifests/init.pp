@@ -138,7 +138,7 @@ class domysqldb (
       'root_password' => $root_password,
     },
   }
-  
+
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
   # shutdown mysql, but only after mysql::config has completely finished
   exec { 'domysqldb-shutdown':
@@ -189,7 +189,7 @@ class domysqldb (
     ensure  => file,
     content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
     owner   => 'root',
-    group   => $mysql::config::root_group,
+    group   => $mysql::params::root_group,
     mode    => '0644',
     before => Exec['domysqldb-startup'],
     require => Exec['domysqldb-shutdown'],
