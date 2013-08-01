@@ -112,9 +112,14 @@ class domysqldb (
     }
     ubuntu, debian: {
       # MySQL 5.5 is default in 12.04
-      package { 'common-mysqldb-five-five-install' :
-        name => 'mysql-server',
-        ensure => 'present',
+      # but can't install with package because of mysql module conflict
+      # package { 'mysql-server' :
+      #   ensure => 'present',
+      # }->
+      exec { 'common-mysqldb-five-five-install' :
+        path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
+        command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
+        require => Class['domysqldb::repoclient'],
       }->
       file { 'common-mysqldb-five-five-common' :
         path => '/tmp/puppet-docommon-mysqldb-five-five-common.txt',
@@ -142,7 +147,7 @@ class domysqldb (
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
   # shutdown mysql, but only after mysql::config has completely finished
   exec { 'domysqldb-shutdown':
-    path => '/sbin',
+    path => '/sbin:/usr/bin',
     command => "service ${mysql::params::service_name} stop",
     require => [Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
   }

@@ -26,10 +26,10 @@ class domysqldb::repoclient (
     }
     ubuntu, debian: {
       # MySQL 5.5 is default for ubuntu 12.04
-      package { 'common-mysqldb-five-five-install-clientonly':
-        name => 'mysql',
-        ensure => 'present',
-      }
+#      package { 'common-mysqldb-five-five-install-clientonly':
+#        name => 'mysql-client',
+#        ensure => 'present',
+#      }
     }
   }
 
