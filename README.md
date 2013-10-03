@@ -6,6 +6,11 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2013-10-03
+
+  * Added ::dev profile that opens up access to MySQL for dev machines
+  * Added ::command macro for running MySQL commands
+
 2013-04-10
 
   * When the log files change size, the old ibdata/ib_logfiles now get moved to a safe (temporary) store in /tmp, rather than being deleted.
