@@ -28,12 +28,13 @@ class domysqldb::dev (
       },
     },
     notify_service => true,
-    require => Class['domysqldb'],
-  }->
+    require => Class['mysql::server'],
+  }
   # widen access for root user
   domysqldb::command { 'mysql-relax-root-dev':
     command => "UPDATE user SET Host='%' WHERE User='root' AND Host='localhost';",
     flush_privileges => true,
+    require => Class['domysqldb'],
   }
 
 }
