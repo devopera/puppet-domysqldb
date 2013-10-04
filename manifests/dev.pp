@@ -12,10 +12,15 @@ class domysqldb::dev (
 
 ) {
 
+  # virtual resources for realising in their modules
   @docommon::fireport { "0${db_port} MySQL DB port":
     protocol => 'tcp',
     port => $db_port,
   }
+  # if we've got a message of the day, include DB
+  @domotd::register { "MySQL(${db_port})" : }
+
+  # allow non-localhost connections to the mysql daemon
   mysql::server::config { 'mysql-openbind-dev':
     settings => {
       'mysqld' => {
@@ -23,15 +28,13 @@ class domysqldb::dev (
       },
     },
     notify_service => true,
-    require => Class['mysql::server'],
-  }
+    require => Class['domysqldb'],
+  }->
   # widen access for root user
   domysqldb::command { 'mysql-relax-root-dev':
     command => "UPDATE user SET Host='%' WHERE User='root' AND Host='localhost';",
     flush_privileges => true,
   }
-  # if we've got a message of the day, include DB
-  @domotd::register { "MySQL(${db_port})" : }
 
 }
 
