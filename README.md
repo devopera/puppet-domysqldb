@@ -6,6 +6,10 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2013-10-10
+
+  * Parameterised $timeout_restart to allow for really big databases to startup
+
 2013-10-03
 
   * Added ::dev profile that opens up access to MySQL for dev machines

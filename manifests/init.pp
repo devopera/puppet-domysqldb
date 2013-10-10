@@ -11,6 +11,10 @@ class domysqldb (
   },
   $user = 'root',
   
+  # subtle settings, rarely changed
+  # timeout needs to be longer for really big databases
+  $timeout_restart = 300,
+  
   # static settings
   $settings = {
     'mysqld' => {
@@ -203,7 +207,8 @@ class domysqldb (
   # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
   exec { 'domysqldb-startup' :
     path => '/sbin',
-    command => "service ${mysql::params::service_name} start",  
+    command => "service ${mysql::params::service_name} start",
+    timeout => $timeout_restart,
     require => Exec['domysqldb-shutdown'],
   }->
   # clean up insecure accounts and test database
