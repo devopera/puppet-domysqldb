@@ -4,6 +4,12 @@ class domysqldb::repoclient (
   # ---------------
   # setup defaults
 
+  # type can be 'percona' or 'mariadb'
+  $db_type = 'mysql',
+
+  # version can be 55 or 56, though not all types are supported
+  $db_version = '55',
+
   # end of class arguments
   # ----------------------
   # begin class

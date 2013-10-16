@@ -4,6 +4,12 @@ class domysqldb (
   # ---------------
   # setup defaults
 
+  # type can be 'percona' or 'mariadb'
+  $db_type = 'mysql',
+
+  # version can be 55 or 56, though not all types are supported
+  $db_version = '55',
+
   $root_password = 'admLn**',
   $dbs = {},
   $dbs_default = {
@@ -74,6 +80,49 @@ class domysqldb (
 
 ) {
 
+  # install packages
+  # - client
+  if ! defined(Class['domysqldb::repoclient']) {
+    # install MySQL client
+    class { 'domysqldb::repoclient': 
+      db_type => $db_type,
+      db_version => $db_version,
+    }
+  }
+
+  # - server
+  case $db_type {
+    mysql: {
+      # install MySQL server 5.5
+      case $operatingsystem {
+        centos, redhat: {
+          exec { 'common-mysqldb-five-five-install' :
+            path => '/usr/bin:/bin',
+            command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
+            require => Class['domysqldb::repoclient'],
+            before => Class['mysql'],
+          }
+        }
+        ubuntu, debian: {
+          # MySQL 5.5 is default in 12.04
+          # but can't install with package because of mysql module conflict
+          # package { 'mysql-server' :
+          #   ensure => 'present',
+          # }->
+          exec { 'common-mysqldb-five-five-install' :
+            path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
+            command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
+            require => Class['domysqldb::repoclient'],
+            before => Class['mysql'],
+          }
+        }
+      }
+    }
+  }
+
+
+  # setup dynamic variables
+  
   # generate dynamic buffer_pool_size if not set
   if ($settings['mysqld']['innodb_buffer_pool_size'] == undef) {
     $memf_array = split($::memorytotal,' ')
@@ -98,43 +147,9 @@ class domysqldb (
   }
   # notify { "debugging: ${innodb_log_file_size_bytes} bytes" : }
 
-  # install MySQL client (REMI repository to get MySQL 5.5 on Centos 6)
-  if ! defined(Class['domysqldb::repoclient']) {
-    class { 'domysqldb::repoclient': }
-  }
-  # install MySQL server
-  case $operatingsystem {
-    centos, redhat: {
-      exec { 'common-mysqldb-five-five-install' :
-        path => '/usr/bin:/bin',
-        command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
-        require => Class['domysqldb::repoclient'],
-      }->
-      file { 'common-mysqldb-five-five-common' :
-        path => '/tmp/runonce-common-mysqldb-five-five-common.txt',
-      }
-    }
-    ubuntu, debian: {
-      # MySQL 5.5 is default in 12.04
-      # but can't install with package because of mysql module conflict
-      # package { 'mysql-server' :
-      #   ensure => 'present',
-      # }->
-      exec { 'common-mysqldb-five-five-install' :
-        path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
-        command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
-        require => Class['domysqldb::repoclient'],
-      }->
-      file { 'common-mysqldb-five-five-common' :
-        path => '/tmp/puppet-docommon-mysqldb-five-five-common.txt',
-      }
-    }
-  }
 
   # configure mysql client and server
-  class { 'mysql':
-    require => File['common-mysqldb-five-five-common'],
-  }->
+  class { 'mysql': }->
   # ensure all the necessary directories exist
   file { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
     ensure => 'directory',
