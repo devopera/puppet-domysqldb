@@ -168,6 +168,7 @@ class domysqldb (
   exec { 'domysqldb-shutdown':
     path => '/sbin:/usr/bin',
     command => "service ${mysql::params::service_name} stop",
+    tag => ['service-sensitive'],
     require => [Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
   }
 
@@ -223,6 +224,7 @@ class domysqldb (
   exec { 'domysqldb-startup' :
     path => '/sbin',
     command => "service ${mysql::params::service_name} start",
+    tag => ['service-sensitive'],
     timeout => $timeout_restart,
     require => Exec['domysqldb-shutdown'],
   }->
