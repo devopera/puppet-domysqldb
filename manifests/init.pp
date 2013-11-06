@@ -222,7 +222,7 @@ class domysqldb (
 
   # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
   exec { 'domysqldb-startup' :
-    path => '/sbin',
+    path => '/sbin:/usr/bin',
     command => "service ${mysql::params::service_name} start",
     tag => ['service-sensitive'],
     timeout => $timeout_restart,
