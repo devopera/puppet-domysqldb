@@ -150,9 +150,8 @@ class domysqldb (
 
   # configure mysql client and server
   class { 'mysql': }->
-  # ensure all the necessary directories exist
-  file { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
-    ensure => 'present',
+  # ensure all the necessary directories exist (as directories or symlinks)
+  docommon::createdir { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
     owner => 'mysql',
     group => 'mysql',
   }->
