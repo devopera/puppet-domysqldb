@@ -152,7 +152,7 @@ class domysqldb (
   class { 'mysql': }->
   # ensure all the necessary directories exist
   file { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
-    ensure => 'directory',
+    ensure => 'present',
     owner => 'mysql',
     group => 'mysql',
   }->
