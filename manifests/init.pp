@@ -114,6 +114,10 @@ class domysqldb (
             command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
             require => Class['domysqldb::repoclient'],
             before => Class['mysql'],
+          }->
+          # install other packages (required for python pip installs)
+          package { 'libmysqlclient-dev' :
+            ensure => present,
           }
         }
       }
