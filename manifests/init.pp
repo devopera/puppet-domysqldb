@@ -95,7 +95,7 @@ class domysqldb (
     mysql: {
       # install MySQL server 5.5
       case $operatingsystem {
-        centos, redhat: {
+        centos, redhat, fedora: {
           exec { 'common-mysqldb-five-five-install' :
             path => '/usr/bin:/bin',
             command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',

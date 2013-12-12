@@ -30,6 +30,13 @@ class domysqldb::repoclient (
         command => 'yum -y --enablerepo=remi,remi-test install mysql',
       }
     }
+    fedora: {
+      # on fedora we install both client and server because there's no client-only package
+      package { 'common-mysqldb-five-five-install-clientonly':
+        name => 'mariadb',
+        ensure => 'present',
+      }
+    }
     ubuntu, debian: {
       # MySQL 5.5 is default for ubuntu 12.04
 #      package { 'common-mysqldb-five-five-install-clientonly':
