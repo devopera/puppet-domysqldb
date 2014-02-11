@@ -80,53 +80,7 @@ class domysqldb (
 
 ) {
 
-  # install packages
-  # - client
-  if ! defined(Class['domysqldb::repoclient']) {
-    # install MySQL client
-    class { 'domysqldb::repoclient': 
-      db_type => $db_type,
-      db_version => $db_version,
-    }
-  }
-
-  # - server
-  case $db_type {
-    mysql: {
-      # install MySQL server 5.5
-      case $operatingsystem {
-        centos, redhat, fedora: {
-          exec { 'common-mysqldb-five-five-install' :
-            path => '/usr/bin:/bin',
-            command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
-            require => Class['domysqldb::repoclient'],
-            before => Class['mysql'],
-          }
-        }
-        ubuntu, debian: {
-          # MySQL 5.5 is default in 12.04
-          # but can't install with package because of mysql module conflict
-          # package { 'mysql-server' :
-          #   ensure => 'present',
-          # }->
-          exec { 'common-mysqldb-five-five-install' :
-            path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
-            command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
-            require => Class['domysqldb::repoclient'],
-            before => Class['mysql'],
-          }->
-          # install other packages (required for python pip installs)
-          package { 'libmysqlclient-dev' :
-            ensure => present,
-          }
-        }
-      }
-    }
-  }
-
-
   # setup dynamic variables
-  
   # generate dynamic buffer_pool_size if not set
   if ($settings['mysqld']['innodb_buffer_pool_size'] == undef) {
     $memf_array = split($::memorytotal,' ')
@@ -152,15 +106,77 @@ class domysqldb (
   # notify { "debugging: ${innodb_log_file_size_bytes} bytes" : }
 
 
-  # configure mysql client and server
-  class { 'mysql': }->
+  # install packages
+  # - client
+  if ! defined(Class['domysqldb::repoclient']) {
+    # install MySQL client
+    class { 'domysqldb::repoclient': 
+      db_type => $db_type,
+      db_version => $db_version,
+    }
+  }
+
+  # - server
+  case $db_type {
+    mysql: {
+      # install MySQL server 5.5
+      case $operatingsystem {
+        centos, redhat: {
+          exec { 'common-mysqldb-five-five-install' :
+            path => '/usr/bin:/bin',
+            command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
+            require => Class['domysqldb::repoclient'],
+            before => Class['mysql'],
+          }
+          $package_name = undef
+        }
+        ubuntu, debian: {
+          # MySQL 5.5 is default in 12.04
+          # but can't install with package because of mysql module conflict
+          # package { 'mysql-server' :
+          #   ensure => 'present',
+          # }->
+          exec { 'common-mysqldb-five-five-install' :
+            path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
+            command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
+            require => Class['domysqldb::repoclient'],
+            before => Class['mysql'],
+          }->
+          # install other packages (required for python pip installs)
+          package { 'libmysqlclient-dev' :
+            ensure => present,
+          }
+          $package_name = undef
+        }
+        fedora: {
+          $package_name = 'mariadb-server'
+          exec { 'domysqldb-mysql-create-user-group-manually' :
+            path => '/bin:/usr/bin:/sbin:/usr/sbin',
+            command => 'groupadd mysql && useradd -r -g mysql mysql',
+            before => [Anchor['domysqldb-pre-server-install']],
+            # only add user if not already there
+            onlyif => 'test `/bin/egrep  -i "^mysql" /etc/passwd | wc -l` == 0',
+          }
+        }
+      }
+    }
+  }
+
+
+
+
+  # configure mysql server
+  anchor { 'domysqldb-pre-server-install' : }
   # ensure all the necessary directories exist (as directories or symlinks)
   docommon::createdir { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
     owner => 'mysql',
     group => 'mysql',
+    # need to wait for mysql class (client install) to create mysql user/group
+    require => [Class['mysql'],Anchor['domysqldb-pre-server-install']],
   }->
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ files
   class { 'mysql::server': 
+    package_name => $package_name,
     config_hash => {
       'root_password' => $root_password,
     },
@@ -172,7 +188,7 @@ class domysqldb (
     path => '/sbin:/usr/bin',
     command => "service ${mysql::params::service_name} stop",
     tag => ['service-sensitive'],
-    require => [Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
+    require => [Class['mysql'], Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
   }
 
   # if the log files have been moved, create new log files as mysql user
@@ -183,7 +199,7 @@ class domysqldb (
       user => 'mysql',
       group => 'mysql',
       before => Exec['domysqldb-startup'],
-      require => Exec['domysqldb-shutdown'],
+      require => [Exec['domysqldb-shutdown'], Anchor['domysqldb-pre-server-install']],
     }
   }
   if ($settings['mysqld']['slow_query_log_file'] != undef) {
@@ -193,7 +209,7 @@ class domysqldb (
       user => 'mysql',
       group => 'mysql',
       before => Exec['domysqldb-startup'],
-      require => Exec['domysqldb-shutdown'],
+      require => [Exec['domysqldb-shutdown'], Anchor['domysqldb-pre-server-install']],
     }
   }
   # delete old binary log files and deps if wrong size
