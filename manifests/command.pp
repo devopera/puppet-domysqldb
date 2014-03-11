@@ -47,10 +47,9 @@ define domysqldb::command (
   }
 
   # run command using command line exec
-  # explicitly set HOME directory to allow for ~/.my.cnf
   exec { "domysqldb-command-${title}" :
     path => '/usr/bin:/bin',
-    command => "bash -c \"export HOME='${home_dir}'; mysql ${expr_user} ${expr_password} ${expr_database} --execute=\\\"${command} ${expr_addon}\\\" \"",
+    command => "mysql --defaults-file=\"${::root_home}/.my.cnf\" ${expr_user} ${expr_password} ${expr_database} --execute=\"${command} ${expr_addon}\" ",
   }
 
 }

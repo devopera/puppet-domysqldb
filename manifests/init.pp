@@ -13,7 +13,7 @@ class domysqldb (
   $root_password = 'admLn**',
   $dbs = {},
   $dbs_default = {
-    require => [Class['mysql'],Class['mysql::server'],Class['mysql::server::account_security']],
+    require => [Class['mysql::client'], Class['mysql::server'], Class['mysql::server::account_security']],
   },
   $user = 'root',
   
@@ -126,7 +126,7 @@ class domysqldb (
             path => '/usr/bin:/bin',
             command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
             require => Class['domysqldb::repoclient'],
-            before => Class['mysql'],
+            before => Class['mysql::client'],
           }
           $package_name = undef
         }
@@ -140,7 +140,7 @@ class domysqldb (
             path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
             command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
             require => Class['domysqldb::repoclient'],
-            before => Class['mysql'],
+            before => Class['mysql::client'],
           }->
           # install other packages (required for python pip installs)
           package { 'libmysqlclient-dev' :
@@ -162,8 +162,8 @@ class domysqldb (
     }
   }
 
-
-
+  # output debugging information
+  notify { "debugpoint: domysqldb reads root_home as '${::root_home}'" : }
 
   # configure mysql server
   anchor { 'domysqldb-pre-server-install' : }
@@ -172,23 +172,22 @@ class domysqldb (
     owner => 'mysql',
     group => 'mysql',
     # need to wait for mysql class (client install) to create mysql user/group
-    require => [Class['mysql'],Anchor['domysqldb-pre-server-install']],
+    require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
   }->
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ files
   class { 'mysql::server': 
     package_name => $package_name,
-    config_hash => {
-      'root_password' => $root_password,
-    },
+    root_password => $root_password,
+    old_root_password => $root_password,
   }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
   # shutdown mysql, but only after mysql::config has completely finished
   exec { 'domysqldb-shutdown':
     path => '/sbin:/usr/bin',
-    command => "service ${mysql::params::service_name} stop",
+    command => "service ${mysql::params::server_service_name} stop",
     tag => ['service-sensitive'],
-    require => [Class['mysql'], Class['mysql::server'], Class['mysql::config'], Exec['mysqld-restart']],  
+    require => [Class['mysql::client'], Class['mysql::server']],  
   }
 
   # if the log files have been moved, create new log files as mysql user
@@ -242,7 +241,7 @@ class domysqldb (
   # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
   exec { 'domysqldb-startup' :
     path => '/sbin:/usr/bin',
-    command => "service ${mysql::params::service_name} start",
+    command => "service ${mysql::params::server_service_name} start",
     tag => ['service-sensitive'],
     timeout => $timeout_restart,
     require => Exec['domysqldb-shutdown'],

@@ -42,7 +42,7 @@ class domysqldb::repoclient (
     }
   }
 
-  class { 'mysql':
+  class { 'mysql::client':
     package_name => $package_name,
   }
 

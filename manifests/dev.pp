@@ -21,14 +21,13 @@ class domysqldb::dev (
   @domotd::register { "MySQL(${db_port})" : }
 
   # allow non-localhost connections to the mysql daemon
-  mysql::server::config { 'mysql-openbind-dev':
+  domysqldb::configfile { 'mysql-openbind-dev':
     settings => {
       'mysqld' => {
         'bind-address'=> '0.0.0.0',
       },
     },
     notify_service => true,
-    require => Class['mysql::server'],
   }
   # widen access for root user
   domysqldb::command { 'mysql-relax-root-dev':

@@ -6,6 +6,10 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2014-03-11
+
+  * Modified to work with latest puppetlabs-mysql module.  ${::root_home} used for command.pp calls.
+
 2013-10-10
 
   * Parameterised $timeout_restart to allow for really big databases to startup
