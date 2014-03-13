@@ -16,6 +16,7 @@ class domysqldb (
     require => [Class['mysql::client'], Class['mysql::server'], Class['mysql::server::account_security']],
   },
   $user = 'root',
+  $real_root_home = '/root',
   
   # subtle settings, rarely changed
   # timeout needs to be longer for really big databases
@@ -179,6 +180,16 @@ class domysqldb (
     package_name => $package_name,
     root_password => $root_password,
     old_root_password => $root_password,
+  }
+  
+  # once mysql::server is installed, fix root_home nonsense by copying to real_root_home
+  if ($real_root_home != $::root_home) {
+    exec { 'domysqldb-copy-my-cnf-to-real-home' :
+      path => '/bin:/usr/bin:/sbin:/usr/sbin',
+      command => "cp ${::root_home}/.my.cnf ${real_root_home}/.my.cnf",
+      creates => "${real_root_home}/.my.cnf",
+      require => Class['mysql::server'],
+    }
   }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
