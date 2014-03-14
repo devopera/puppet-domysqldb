@@ -8,7 +8,7 @@ Changelog
 
 2014-03-11
 
-  * Modified to work with latest puppetlabs-mysql module.  ${::root_home} used for command.pp calls. .my.cnf duplicated as necessary.
+  * Modified to work with latest puppetlabs-mysql module.  ${::root_home} used for command.pp calls. .my.cnf duplicated as necessary.  Safer creation of root@% user in dev profile.
 
 2013-10-10
 
