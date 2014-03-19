@@ -292,6 +292,15 @@ class domysqldb (
 #    path => '/bin:/usr/bin',
 #    command => "mysql -u root --password='${root_password}' -e \"GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1'  IDENTIFIED BY '${root_password}';\"",
 #  }
+
+  # give root@127.0.0.1 (loopback) same privileges as root@localhost
+  domysqldb::command::cloneuser { 'domysqldb-allow-127' :
+    from_user => 'root',
+    from_host => 'localhost',
+    to_user => 'root',
+    to_host => '127.0.0.1',
+    require => Exec['domysqldb-startup'],
+  }
   
   # delete old log file if it is now redundant
   if (($settings['mysqld']['log_error'] != undef) and ($settings['mysqld']['log_error'] != '/var/log/mysqld.log')) {
