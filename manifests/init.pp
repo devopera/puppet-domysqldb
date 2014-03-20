@@ -184,20 +184,65 @@ class domysqldb (
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ files
   class { 'mysql::server': 
     package_name => $package_name,
-    root_password => $root_password,
-    old_root_password => $root_password,
-    remove_default_accounts => true,
-  }
+    # don't set the root password because it conflicts with pre-set root passwords and wipes root@localhost grants
+    root_password => 'UNSET',
+    # don't remove default accounts because it conflicts as above (also wipes out root@127.0.0.1 which we need for tunnelled connections)
+    # remove_default_accounts => true,
+  }->
+
+  # create root@localhost user/password using mysqladmin because mysql_user/mysql_grant locks itself out
+  exec { 'domysqldb-setup-root-user' :
+    path => '/bin:/usr/bin:/sbin:/usr/sbin',
+    command => "mysqladmin -u root password '${root_password}'; mysql -u root --password='${root_password}' -NBe \"GRANT ALL ON *.* TO 'root'@'localhost' IDENTIFIED BY '${root_password}' WITH GRANT OPTION\"",
+  }->
   
-  # once mysql::server is installed, fix root_home nonsense by copying to real_root_home
-  if ($real_root_home != $::root_home) {
-    exec { 'domysqldb-copy-my-cnf-to-real-home' :
-      path => '/bin:/usr/bin:/sbin:/usr/sbin',
-      command => "cp ${::root_home}/.my.cnf ${real_root_home}/.my.cnf",
-      creates => "${real_root_home}/.my.cnf",
-      require => Class['mysql::server'],
-    }
+  # create .my.cnf in correct location only, not erroneous puppetlabs-mysql $::root_home
+  file { ["${real_root_home}/.my.cnf"]:
+    content => template('domysqldb/my.cnf.pass.erb'),
+    owner   => 'root',
+    mode    => '0600',
+  }->
+  anchor { 'domysqldb-mysql-up' : }
+
+  mysql_user { 'root@127.0.0.1' :
+    password_hash            => mysql_password($root_password),
+    ensure                   => present,
+    max_connections_per_hour => '0',
+    max_queries_per_hour     => '0',
+    max_updates_per_hour     => '0',
+    max_user_connections     => '0',
+    require                  => [Anchor['domysqldb-mysql-up']],
+  }->
+  mysql_grant { 'root@127.0.0.1/*.*' :
+    ensure     => present,
+    user       => 'root@127.0.0.1',
+    options    => ['GRANT'],
+    privileges => [ 'ALL' ],
+    table      => '*.*',
   }
+
+  # manually remove insecure accounts
+  mysql_user {
+    [ "root@${::fqdn}",
+      # don't remove root@127.0.0.1
+      # 'root@127.0.0.1',
+      'root@::1',
+      "@${::fqdn}",
+      '@localhost',
+      '@%']:
+    ensure  => 'absent',
+    require => Anchor['domysqldb-mysql-up'],
+  }
+
+  # once mysql::server is installed, fix root_home nonsense by copying to real_root_home
+#  if ($real_root_home != $::root_home) {
+#    exec { 'domysqldb-copy-my-cnf-to-real-home' :
+#      path => '/bin:/usr/bin:/sbin:/usr/sbin',
+#      command => "cp ${::root_home}/.my.cnf ${real_root_home}/.my.cnf",
+#      creates => "${real_root_home}/.my.cnf",
+#      require => Class['mysql::server'],
+#    }
+#  }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
   # shutdown mysql, but only after mysql::config has completely finished
@@ -294,13 +339,13 @@ class domysqldb (
 #  }
 
   # give root@127.0.0.1 (loopback) same privileges as root@localhost
-  domysqldb::command::cloneuser { 'domysqldb-allow-127' :
-    from_user => 'root',
-    from_host => 'localhost',
-    to_user => 'root',
-    to_host => '127.0.0.1',
-    require => Exec['domysqldb-startup'],
-  }
+#  domysqldb::command::cloneuser { 'domysqldb-allow-127' :
+#    from_user => 'root',
+#    from_host => 'localhost',
+#    to_user => 'root',
+#    to_host => '127.0.0.1',
+#    require => Exec['domysqldb-startup'],
+#  }
   
   # delete old log file if it is now redundant
   if (($settings['mysqld']['log_error'] != undef) and ($settings['mysqld']['log_error'] != '/var/log/mysqld.log')) {
