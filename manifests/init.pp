@@ -269,12 +269,11 @@ class domysqldb (
   # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
   file { '/etc/mysql/conf.d/domysqldb.cnf':
     ensure  => file,
-    content => "${settings_via_template}\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
+    content => "# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
     owner   => 'root',
     group   => $mysql::params::root_group,
     mode    => '0644',
-    before => Exec['domysqldb-startup'],
-    require => Exec['domysqldb-shutdown'],
+    notify  => [Service['mysqld']],
   }
 
   # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
