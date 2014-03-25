@@ -245,28 +245,7 @@ class domysqldb (
     require => [Class['mysql::client'], Class['mysql::server']],  
   }
 
-  # delete old binary log files and deps if wrong size
-  if ($innodb_log_file_size_bytes != undef) {
-  
-    $tmptarget = '/tmp/puppet-domysqldb-old-ibdatas'
-    
-    # ensure that a dump directory exists in /tmp
-    file { "$tmptarget" :
-      ensure => 'directory',
-      mode => 0777,
-    }->
-    
-    exec { 'domysqldb-scrub-old-binlog-wrong-size' :
-      path => '/bin:/usr/bin',
-      command => "mv /var/lib/mysql/ib_logfile* $tmptarget && mv /var/lib/mysql/ibdata* $tmptarget",
-      onlyif => "test `stat -c \'%s\' /var/lib/mysql/ib_logfile0` -ne ${innodb_log_file_size_bytes}",
-      before => Exec['domysqldb-startup'],
-      require => Exec['domysqldb-shutdown'],
-    }
-    
-  }
-  
-  # setup [non-out-of-the-box] config after my.cnf has been setup by mysql::server
+  # setup dynamic config after my.cnf has been setup by mysql::server
   file { '/etc/mysql/conf.d/domysqldb.cnf':
     ensure  => file,
     content => "# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
@@ -285,18 +264,6 @@ class domysqldb (
     require => Exec['domysqldb-shutdown'],
   }
   
-
-  # delete old log file if it is now redundant
-  if (($settings['mysqld']['log_error'] != undef) and ($settings['mysqld']['log_error'] != '/var/log/mysqld.log')) {
-    exec { 'domysqldb-scrub-old-mysqld-log-file':
-      path => '/bin:/usr/bin',
-      command => 'rm /var/log/mysqld.log',
-      onlyif => 'test -f /var/log/mysqld.log',
-      require => Exec['domysqldb-startup'],
-      before => Anchor['domysqldb-finished'],
-    }
-  }
-
   # create databases
   create_resources(mysql::db, $dbs, $dbs_default)
 
