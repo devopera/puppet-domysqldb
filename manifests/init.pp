@@ -188,6 +188,8 @@ class domysqldb (
     root_password => 'UNSET',
     # don't remove default accounts because it conflicts as above (also wipes out root@127.0.0.1 which we need for tunnelled connections)
     # remove_default_accounts => true,
+    # set override settings at server install (/etc/my.cnf) to avoid fixes later
+    override_options => $settings,
   }->
 
   # create root@localhost user/password using mysqladmin because mysql_user/mysql_grant locks itself out
@@ -233,16 +235,6 @@ class domysqldb (
     ensure  => 'absent',
     require => Anchor['domysqldb-mysql-up'],
   }
-
-  # once mysql::server is installed, fix root_home nonsense by copying to real_root_home
-#  if ($real_root_home != $::root_home) {
-#    exec { 'domysqldb-copy-my-cnf-to-real-home' :
-#      path => '/bin:/usr/bin:/sbin:/usr/sbin',
-#      command => "cp ${::root_home}/.my.cnf ${real_root_home}/.my.cnf",
-#      creates => "${real_root_home}/.my.cnf",
-#      require => Class['mysql::server'],
-#    }
-#  }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
   # shutdown mysql, but only after mysql::config has completely finished
@@ -317,36 +309,7 @@ class domysqldb (
     require => Exec['domysqldb-shutdown'],
   }
   
-  # account security now done in mysql::server
-  # clean up insecure accounts and test database
-  #class { 'mysql::server::account_security':
-  #  require => Class['mysql::server'],
-  #}->
-  # add back a user entry for root@127.0.0.1
-  # can't use database_user resource (conflicts with mysql::server::account_security)
-  #database_user { "root@127.0.0.1":
-  #  ensure        => present,
-  #  password_hash => mysql_password($root_password),
-  #  provider      => 'mysql',
-  #}-> 
-  #database_grant { "root@127.0.0.1/*":
-  #  privileges => ['all'],
-  #  provider   => 'mysql',
-  #}
-#  exec { 'domysqldb-enable-root-localhost-ip' :
-#    path => '/bin:/usr/bin',
-#    command => "mysql -u root --password='${root_password}' -e \"GRANT ALL PRIVILEGES ON *.* TO 'root'@'127.0.0.1'  IDENTIFIED BY '${root_password}';\"",
-#  }
 
-  # give root@127.0.0.1 (loopback) same privileges as root@localhost
-#  domysqldb::command::cloneuser { 'domysqldb-allow-127' :
-#    from_user => 'root',
-#    from_host => 'localhost',
-#    to_user => 'root',
-#    to_host => '127.0.0.1',
-#    require => Exec['domysqldb-startup'],
-#  }
-  
   # delete old log file if it is now redundant
   if (($settings['mysqld']['log_error'] != undef) and ($settings['mysqld']['log_error'] != '/var/log/mysqld.log')) {
     exec { 'domysqldb-scrub-old-mysqld-log-file':
