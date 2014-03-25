@@ -237,13 +237,6 @@ class domysqldb (
   }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
-  # shutdown mysql, but only after mysql::config has completely finished
-  exec { 'domysqldb-shutdown':
-    path => '/sbin:/usr/bin',
-    command => "service ${mysql::params::server_service_name} stop",
-    tag => ['service-sensitive'],
-    require => [Class['mysql::client'], Class['mysql::server']],  
-  }
 
   # setup dynamic config after my.cnf has been setup by mysql::server
   file { '/etc/mysql/conf.d/domysqldb.cnf':
@@ -255,15 +248,6 @@ class domysqldb (
     notify  => [Service['mysqld']],
   }
 
-  # start [from stopped] mysql to create new log files (if necessary) and read new conf.d config
-  exec { 'domysqldb-startup' :
-    path => '/sbin:/usr/bin',
-    command => "service ${mysql::params::server_service_name} start",
-    tag => ['service-sensitive'],
-    timeout => $timeout_restart,
-    require => Exec['domysqldb-shutdown'],
-  }
-  
   # create databases
   create_resources(mysql::db, $dbs, $dbs_default)
 
