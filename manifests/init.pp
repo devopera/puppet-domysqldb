@@ -245,29 +245,6 @@ class domysqldb (
     require => [Class['mysql::client'], Class['mysql::server']],  
   }
 
-  # if the log files have been moved, create new log files as mysql user
-  if ($settings['mysqld']['log_error'] != undef) {
-    exec { 'domysqldb-create-new-log-error':
-      path => '/bin:/usr/bin',
-      command => "touch ${settings['mysqld']['log_error']}",
-      user => 'mysql',
-      group => 'mysql',
-      before => Exec['domysqldb-startup'],
-      require => [Exec['domysqldb-shutdown'], Anchor['domysqldb-pre-server-install']],
-    }
-  }
-  
-  if ($settings['mysqld']['slow_query_log_file'] != undef) {
-    exec { 'domysqldb-create-new-log-slow':
-      path => '/bin:/usr/bin',
-      command => "touch ${settings['mysqld']['slow_query_log_file']}",
-      user => 'mysql',
-      group => 'mysql',
-      before => Exec['domysqldb-startup'],
-      require => [Exec['domysqldb-shutdown'], Anchor['domysqldb-pre-server-install']],
-    }
-  }
-  
   # delete old binary log files and deps if wrong size
   if ($innodb_log_file_size_bytes != undef) {
   
