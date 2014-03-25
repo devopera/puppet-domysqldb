@@ -6,9 +6,13 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2014-03-25
+
+  * Refactored to clean out dangerous ibdata resize code.
+
 2014-03-11
 
-  * Modified to work with latest puppetlabs-mysql module.  ${::root_home} used for command.pp calls. .my.cnf duplicated as necessary.  Safer creation of root@% user in dev profile.
+  * Modified to work with latest puppetlabs-mysql module.  ${::root_home} used for command.pp calls. Safer creation of root@% user in dev profile.
 
 2013-10-10
 

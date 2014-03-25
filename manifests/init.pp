@@ -190,12 +190,29 @@ class domysqldb (
     # remove_default_accounts => true,
     # set override settings at server install (/etc/my.cnf) to avoid fixes later
     override_options => $settings,
-  }->
+    before => Anchor['domysqldb-mysql-up-for-internal'],
+  }
+
+  # cover the case where MySQL was started before /etc/my.cnf was created
+  if ($innodb_log_file_size_bytes != undef) {
+    class { 'domysqldb::fixibdata' :
+      new_size => $innodb_log_file_size_bytes,
+      before => [Anchor['domysqldb-mysql-up-for-internal']],
+    }
+
+    # setup order
+    Class['mysql::server::config'] ->
+    Class['domysqldb::fixibdata'] ->
+    Class['mysql::server::service']
+  }
+  
+  anchor { 'domysqldb-mysql-up-for-internal' : }
 
   # create root@localhost user/password using mysqladmin because mysql_user/mysql_grant locks itself out
   exec { 'domysqldb-setup-root-user' :
     path => '/bin:/usr/bin:/sbin:/usr/sbin',
     command => "mysqladmin -u root password '${root_password}'; mysql -u root --password='${root_password}' -NBe \"GRANT ALL ON *.* TO 'root'@'localhost' IDENTIFIED BY '${root_password}' WITH GRANT OPTION\"",
+    require => [Class['mysql::server'], Anchor['domysqldb-mysql-up-for-internal']],
   }->
   
   # create .my.cnf in correct location only, not erroneous puppetlabs-mysql $::root_home
@@ -204,6 +221,12 @@ class domysqldb (
     owner   => 'root',
     mode    => '0600',
   }->
+  
+  # delete any redundant log files
+  class { 'domysqldb::cleanlogs' :
+    settings => $settings,
+  }->
+  
   anchor { 'domysqldb-mysql-up' : }
 
   mysql_user { 'root@127.0.0.1' :
@@ -213,7 +236,7 @@ class domysqldb (
     max_queries_per_hour     => '0',
     max_updates_per_hour     => '0',
     max_user_connections     => '0',
-    require                  => [Anchor['domysqldb-mysql-up']],
+    require                  => [Anchor['domysqldb-mysql-up-for-internal']],
   }->
   mysql_grant { 'root@127.0.0.1/*.*' :
     ensure     => present,
@@ -233,15 +256,15 @@ class domysqldb (
       '@localhost',
       '@%']:
     ensure  => 'absent',
-    require => Anchor['domysqldb-mysql-up'],
+    require => Anchor['domysqldb-mysql-up-for-internal'],
   }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
 
-  # setup dynamic config after my.cnf has been setup by mysql::server
+  # setup additional dynamic config after my.cnf has been setup by mysql::server
   file { '/etc/mysql/conf.d/domysqldb.cnf':
     ensure  => file,
-    content => "# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
+    content => "[mysqld]\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
     owner   => 'root',
     group   => $mysql::params::root_group,
     mode    => '0644',
