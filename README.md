@@ -6,6 +6,10 @@ MySQL puppet config that requires mysql module
 Changelog
 ---------
 
+2014-04-03
+
+  * Fixed Facter change from 1.7.5 to 2.0.1, where certain facts were removed
+
 2014-03-25
 
   * Refactored to clean out dangerous ibdata resize code.

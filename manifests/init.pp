@@ -84,11 +84,15 @@ class domysqldb (
   # setup dynamic variables
   # generate dynamic buffer_pool_size if not set
   if ($settings['mysqld']['innodb_buffer_pool_size'] == undef) {
-    $memf_array = split($::memorytotal,' ')
+    $memf_array = split($::memorysize_mb,' ')
     if ($::memorytotal =~ /GB/) {
       $memf = inline_template('<%= (memf_array[0].to_f * 1000 * 0.35).floor -%>')
     } else {
       $memf = inline_template('<%= (memf_array[0].to_f * 0.35).floor -%>')
+    }
+    # catch bad value
+    if ($memf == 0) {
+      fail('domysqldb error: unable to read memory size of machine')
     }
     $innodb_buffer_pool_size_calc = "innodb_buffer_pool_size = ${memf}M"
   } else {
