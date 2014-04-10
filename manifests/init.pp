@@ -85,11 +85,7 @@ class domysqldb (
   # generate dynamic buffer_pool_size if not set
   if ($settings['mysqld']['innodb_buffer_pool_size'] == undef) {
     $memf_array = split($::memorysize_mb,' ')
-    if ($::memorytotal =~ /GB/) {
-      $memf = inline_template('<%= (memf_array[0].to_f * 1000 * 0.35).floor -%>')
-    } else {
-      $memf = inline_template('<%= (memf_array[0].to_f * 0.35).floor -%>')
-    }
+    $memf = inline_template('<%= (memf_array[0].to_f * 0.35).floor -%>')
     # catch bad value
     if ($memf == 0) {
       fail('domysqldb error: unable to read memory size of machine')
@@ -240,7 +236,7 @@ class domysqldb (
     max_queries_per_hour     => '0',
     max_updates_per_hour     => '0',
     max_user_connections     => '0',
-    require                  => [Anchor['domysqldb-mysql-up-for-internal']],
+    require                  => [Anchor['domysqldb-mysql-up']],
   }->
   mysql_grant { 'root@127.0.0.1/*.*' :
     ensure     => present,
@@ -248,6 +244,7 @@ class domysqldb (
     options    => ['GRANT'],
     privileges => [ 'ALL' ],
     table      => '*.*',
+    before => Anchor['domysqldb-finished'],
   }
 
   # manually remove insecure accounts
@@ -260,7 +257,8 @@ class domysqldb (
       '@localhost',
       '@%']:
     ensure  => 'absent',
-    require => Anchor['domysqldb-mysql-up-for-internal'],
+    require => Anchor['domysqldb-mysql-up'],
+    before => Anchor['domysqldb-finished'],
   }
 
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
