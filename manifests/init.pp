@@ -73,6 +73,9 @@ class domysqldb (
       'large_pages'               => true,
       'sync_binlog'               => 1,
     },
+    'mysqld_safe' => {
+      'log_error'                 => '/var/log/mysql/error.log',
+    }
   },
 
   # end of class arguments
