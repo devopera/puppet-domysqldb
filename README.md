@@ -61,7 +61,7 @@ Override given settings for each mysql component, e.g. key_buffer_size for mysql
 
     class { 'domysqldb':
       root_password => 'admLn**',
-      settings = {
+      settings => {
         'mysqld' => {
           'key_buffer_size' => '32M',
         }
@@ -71,9 +71,9 @@ Override given settings for each mysql component, e.g. key_buffer_size for mysql
 Tell MySQL to use a fixed buffer size, not to derive it as a fraction of available RAM (default behaviour)
     class { 'domysqldb':
       root_password => 'admLn**',
-      settings = {
+      settings => {
         'mysqld' => {
-          'innodb_buffer_pool_size' => 512M,
+          'innodb_buffer_pool_size' => '512M',
         }
       }
     }

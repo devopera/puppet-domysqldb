@@ -1,0 +1,14 @@
+{
+  "name": "devopera-domysqldb",
+  "version": "0.9.2",
+  "author": "(c) Alex Stanhope, Devopera.com",
+  "summary": "MySQL installation and configuration module",
+  "license": "Apache License, Version 2.0",
+  "source": "https://github.com/devopera/puppet-domysqldb",
+  "project_page": "http://devopera.com/module/domysqldb",
+  "issues_url": "https://github.com/devopera/puppet-domysqldb/issues",
+  "description": "MySQL is the cornerstone of the Linux-Apache-MySQL-PHP (LAMP) stack.  It's the single most popular open-source database engine.  This Devopera install configures both client and server, including dynamically-allocated server settings to maximise MySQL performance for each host type.",
+  "dependencies": [
+    {"name":"devopera/docommon","version_requirement":"0.9.3"}
+  ]
+}
