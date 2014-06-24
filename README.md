@@ -1,10 +1,14 @@
-domysqldb
-=========
+[devopera](http://devopera.com)-[domysqldb](http://devopera.com/module/domysqldb)
+===============
 
-MySQL puppet config that requires mysql module
+MySQL is the cornerstone of the Linux-Apache-MySQL-PHP (LAMP) stack.  It's the single most popular open-source database engine.  This Devopera install configures both client and server, including dynamically-allocated server settings to maximise MySQL performance for each host type.
 
 Changelog
 ---------
+
+2014-06-24
+
+  * Tidied up module for release open source
 
 2014-04-03
 
@@ -39,6 +43,45 @@ Changelog
 
   * Modified runonce to write notifications to a parameterised ${notifier_dir}.
   * Added mysql-devel to the list of 5.5 packages installed.
+
+Usage
+-----
+
+Setup MySQL server
+
+    class { 'domysqldb' : }
+
+Setup with a given root password
+
+    class { 'domysqldb':
+      root_password => 'admLn**',
+    }
+
+Override given settings for each mysql component, e.g. key_buffer_size for mysqld
+
+    class { 'domysqldb':
+      root_password => 'admLn**',
+      settings = {
+        'mysqld' => {
+          'key_buffer_size' => '32M',
+        }
+      }
+    }
+
+Tell MySQL to use a fixed buffer size, not to derive it as a fraction of available RAM (default behaviour)
+    class { 'domysqldb':
+      root_password => 'admLn**',
+      settings = {
+        'mysqld' => {
+          'innodb_buffer_pool_size' => 512M,
+        }
+      }
+    }
+
+Operating System support
+------------------------
+
+Tested with CentOS 6, Ubuntu 12.04
 
 Copyright and License
 ---------------------
