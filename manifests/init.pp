@@ -184,7 +184,7 @@ class domysqldb (
     require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
   }->
   
-  # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ files
+  # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ or /etc/my.cnf.d/ files
   class { 'mysql::server': 
     package_name => $package_name,
     # don't set the root password because it conflicts with pre-set root passwords and wipes root@localhost grants
@@ -267,7 +267,7 @@ class domysqldb (
   $settings_via_template = template('mysql/my.conf.cnf.erb') 
 
   # setup additional dynamic config after my.cnf has been setup by mysql::server
-  file { '/etc/mysql/conf.d/domysqldb.cnf':
+  file { "${mysql::params::includedir}/domysqldb.cnf":
     ensure  => file,
     content => "[mysqld]\n# Dynamically configured sizes\n${innodb_buffer_pool_size_calc}\n\n",
     owner   => 'root',
