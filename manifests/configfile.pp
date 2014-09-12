@@ -94,7 +94,7 @@ define domysqldb::configfile (
     $content = $settings
   }
 
-  file { "/etc/mysql/conf.d/${name}.cnf":
+  file { "${mysql::params::includedir}/${name}.cnf":
     ensure  => file,
     content => $content,
     owner   => 'root',
@@ -104,7 +104,7 @@ define domysqldb::configfile (
   }
 
   if $notify_service {
-    File["/etc/mysql/conf.d/${name}.cnf"] {
+    File["${mysql::params::includedir}/${name}.cnf"] {
       notify => Service['mysqld']
     }
   }

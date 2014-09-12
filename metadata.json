@@ -1,6 +1,6 @@
 {
   "name": "devopera-domysqldb",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "author": "(c) Alex Stanhope, Devopera.com",
   "summary": "MySQL installation and configuration module",
   "license": "Apache License, Version 2.0",

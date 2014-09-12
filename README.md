@@ -6,6 +6,10 @@ MySQL is the cornerstone of the Linux-Apache-MySQL-PHP (LAMP) stack.  It's the s
 Changelog
 ---------
 
+2014-09-12
+
+  * Changed paths to use mysql::params, following move from /etc/mysql/conf.d to /etc/my.cnf.d
+
 2014-06-24
 
   * Tidied up module for release open source
