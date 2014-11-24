@@ -264,7 +264,9 @@ class domysqldb (
     before => Anchor['domysqldb-finished'],
   }
 
-  $settings_via_template = template('mysql/my.cnf.erb') 
+  # can't use puppetlabs-mysql template due to .sort() function error
+  # $settings_via_template = template('mysql/my.cnf.erb') 
+  $settings_via_template = template('domysqldb/my.cnf.erb') 
 
   # setup additional dynamic config after my.cnf has been setup by mysql::server
   file { "${mysql::params::includedir}/domysqldb.cnf":

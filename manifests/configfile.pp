@@ -89,7 +89,9 @@ define domysqldb::configfile (
   include mysql::server::config
 
   if is_hash($settings) {
-    $content = template('mysql/my.conf.cnf.erb')
+    # can't use mysql template because of unknown .sort() call
+    # $content = template('mysql/my.cnf.erb')
+    $content = template('domysqldb/my.cnf.erb')
   } else {
     $content = $settings
   }
