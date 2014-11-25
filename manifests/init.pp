@@ -181,8 +181,8 @@ class domysqldb (
     owner => 'mysql',
     group => 'mysql',
     # need to wait for mysql class (client install) to create mysql user/group
-    require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
-  }->
+    # require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
+  }
   
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ or /etc/my.cnf.d/ files
   class { 'mysql::server': 
