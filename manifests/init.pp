@@ -180,8 +180,20 @@ class domysqldb (
   docommon::createdir { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
     owner => 'mysql',
     group => 'mysql',
-    # need to wait for mysql class (client install) to create mysql user/group
+    # need to wait for mysql class (client install) to create mysql user/group, but that creates dep cycle
     # require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
+    require => [User['mysql']],
+  }
+  if ! defined(User['mysql']) {
+    user { 'mysql-user': 
+      name => 'mysql',
+      shell => '/bin/bash',
+      uid => 27,
+      ensure => 'present',
+      managehome => true,
+      home => '/var/lib/mysql',
+      comment => 'MySQL server user',
+    }
   }
   
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ or /etc/my.cnf.d/ files
