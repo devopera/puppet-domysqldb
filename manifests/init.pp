@@ -47,8 +47,8 @@ class domysqldb (
       'innodb_log_file_size'      => '64M',
       'innodb_flush_log_at_trx_commit' => 1,
       'innodb_file_per_table'     => 1,
-      # MyISAM
-      'myisam_recover_options'    => 'FORCE,BACKUP',
+      # MyISAM (throws error in Ubuntu 14.04)
+      # 'myisam_recover_options'    => 'FORCE,BACKUP',
       # Safety
       'skip_name_resolve'         => true,
       'sysdate_is_now'            => 1,
