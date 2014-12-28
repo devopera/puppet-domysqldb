@@ -182,19 +182,29 @@ class domysqldb (
     group => 'mysql',
     # need to wait for mysql class (client install) to create mysql user/group, but that creates dep cycle
     # require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
-    require => [User['mysql']],
+    require => [Anchor['domysql-user']],
   }
-  if ! defined(User['mysql']) {
-    user { 'mysql-user': 
-      name => 'mysql',
-      shell => '/bin/bash',
-      uid => 27,
-      ensure => 'present',
-      managehome => true,
-      home => '/var/lib/mysql',
-      comment => 'MySQL server user',
-    }
+
+  # create a user only if it doesn't exist already
+  anchor { 'domysql-user': }
+
+  exec { 'domysql-mysql-create-user' :
+    path => '/bin:/usr/bin:/sbin:/usr/sbin',
+    command => 'id -u mysql &>/dev/null || useradd -u 27 -d /var/lib/mysql mysql',
+    before => [Anchor['domysql-user']],
   }
+  # can't use mysql type because Ubuntu chokes on overwriting
+  # if ! defined(User['mysql']) {
+  #   user { 'mysql-user': 
+  #     name => 'mysql',
+  #     shell => '/bin/bash',
+  #     uid => 27,
+  #     ensure => 'present',
+  #     managehome => true,
+  #     home => '/var/lib/mysql',
+  #     comment => 'MySQL server user',
+  #   }
+  # }
   
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ or /etc/my.cnf.d/ files
   class { 'mysql::server': 
