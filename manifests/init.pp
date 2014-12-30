@@ -188,9 +188,10 @@ class domysqldb (
   # create a user only if it doesn't exist already
   anchor { 'domysql-user': }
 
-  exec { 'domysql-mysql-create-user' :
-    path => '/bin:/usr/bin:/sbin:/usr/sbin',
-    command => 'id -u mysql &>/dev/null || useradd -u 27 -d /var/lib/mysql mysql',
+  docommon::ensureuser { 'domysql-mysql-create-user' :
+    user => 'mysql',
+    uid => 27,
+    home => '/var/lib/mysql',
     before => [Anchor['domysql-user']],
   }
   # can't use mysql type because Ubuntu chokes on overwriting
