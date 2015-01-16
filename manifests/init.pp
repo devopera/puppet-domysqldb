@@ -183,6 +183,7 @@ class domysqldb (
     # need to wait for mysql class (client install) to create mysql user/group, but that creates dep cycle
     # require => [Class['mysql::client'], Anchor['domysqldb-pre-server-install']],
     require => [Anchor['domysql-user']],
+    before => [Service['mysqld']],
   }
 
   # create a user only if it doesn't exist already
@@ -237,7 +238,8 @@ class domysqldb (
   # create root@localhost user/password using mysqladmin because mysql_user/mysql_grant locks itself out
   exec { 'domysqldb-setup-root-user' :
     path => '/bin:/usr/bin:/sbin:/usr/sbin',
-    command => "mysqladmin -u root password '${root_password}'; mysql -u root --password='${root_password}' -NBe \"GRANT ALL ON *.* TO 'root'@'localhost' IDENTIFIED BY '${root_password}' WITH GRANT OPTION\"",
+    # command => "mysqladmin -u root password '${root_password}'; mysql -u root --password='${root_password}' -NBe \"GRANT ALL ON *.* TO 'root'@'localhost' IDENTIFIED BY '${root_password}' WITH GRANT OPTION\"",
+    command => "mysqladmin --defaults-extra-file=/root/.my.cnf -u root password '${root_password}'",
     require => [Class['mysql::server'], Anchor['domysqldb-mysql-up-for-internal']],
   }->
   
@@ -255,29 +257,29 @@ class domysqldb (
   
   anchor { 'domysqldb-mysql-up' : }
 
-  mysql_user { 'root@127.0.0.1' :
-    password_hash            => mysql_password($root_password),
-    ensure                   => present,
-    max_connections_per_hour => '0',
-    max_queries_per_hour     => '0',
-    max_updates_per_hour     => '0',
-    max_user_connections     => '0',
-    require                  => [Anchor['domysqldb-mysql-up']],
-  }->
-  mysql_grant { 'root@127.0.0.1/*.*' :
-    ensure     => present,
-    user       => 'root@127.0.0.1',
-    options    => ['GRANT'],
-    privileges => [ 'ALL' ],
-    table      => '*.*',
-    before => Anchor['domysqldb-finished'],
-  }
+  # mysql_user { 'root@127.0.0.1' :
+  #   password_hash            => mysql_password($root_password),
+  #   ensure                   => present,
+  #   max_connections_per_hour => '0',
+  #   max_queries_per_hour     => '0',
+  #   max_updates_per_hour     => '0',
+  #   max_user_connections     => '0',
+  #   require                  => [Anchor['domysqldb-mysql-up']],
+  # }->
+  # mysql_grant { 'root@127.0.0.1/*.*' :
+  #   ensure     => present,
+  #   user       => 'root@127.0.0.1',
+  #   options    => ['GRANT'],
+  #   privileges => [ 'ALL' ],
+  #   table      => '*.*',
+  #   before => Anchor['domysqldb-finished'],
+  # }
 
   # manually remove insecure accounts
   mysql_user {
     [ "root@${::fqdn}",
-      # don't remove root@127.0.0.1
-      # 'root@127.0.0.1',
+      # do remove root@127.0.0.1
+      'root@127.0.0.1',
       'root@::1',
       "@${::fqdn}",
       '@localhost',

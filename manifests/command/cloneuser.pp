@@ -23,7 +23,6 @@ define domysqldb::command::cloneuser (
 , Create_routine_priv, Alter_routine_priv
 , Create_user_priv
 , Event_priv, Trigger_priv
-, Create_tablespace_priv
 , max_questions, max_updates, max_connections, max_user_connections
 ) SELECT '${to_user}', '${to_host}', Password
 , Select_priv, Insert_priv, Update_priv, Delete_priv, Create_priv
@@ -37,11 +36,10 @@ define domysqldb::command::cloneuser (
 , Create_routine_priv, Alter_routine_priv
 , Create_user_priv
 , Event_priv, Trigger_priv
-, Create_tablespace_priv
 , max_questions, max_updates, max_connections, max_user_connections
  FROM user
  WHERE User='${from_user}' AND Host='${from_host}'
-ON DUPLICATE KEY UPDATE Host='${to_host}';",
+ ON DUPLICATE KEY UPDATE Host='${to_host}';",
     flush_privileges => true,
   }
 
