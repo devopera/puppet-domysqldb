@@ -239,7 +239,8 @@ class domysqldb (
   exec { 'domysqldb-setup-root-user' :
     path => '/bin:/usr/bin:/sbin:/usr/sbin',
     # command => "mysqladmin -u root password '${root_password}'; mysql -u root --password='${root_password}' -NBe \"GRANT ALL ON *.* TO 'root'@'localhost' IDENTIFIED BY '${root_password}' WITH GRANT OPTION\"",
-    command => "mysqladmin --defaults-extra-file=/root/.my.cnf -u root password '${root_password}'",
+    # use root's .my.cnf only if one exists (2,3..nth run)
+    command => "[ -f '/root/.my.cnf' ] && mysqladmin --defaults-extra-file=/root/.my.cnf -u root password '${root_password}' || mysqladmin -u root password '${root_password}'",
     require => [Class['mysql::server'], Anchor['domysqldb-mysql-up-for-internal']],
   }->
   
