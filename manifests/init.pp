@@ -109,73 +109,26 @@ class domysqldb (
   }
   # notify { "debugging: ${innodb_log_file_size_bytes} bytes" : }
 
-  # install packages
-  
-  # - client
+  # client (install repo and packages)
   if ! defined(Class['domysqldb::repoclient']) {
-    # install MySQL client
     class { 'domysqldb::repoclient': 
       db_type => $db_type,
       db_version => $db_version,
     }
   }
 
-  # - server
-  case $db_type {
-    mysql: {
-    
-      # install MySQL server 5.5
-
-      case $operatingsystem {
-        centos, redhat: {
-          exec { 'common-mysqldb-five-five-install' :
-            path => '/usr/bin:/bin',
-            command => 'yum -y --enablerepo=remi,remi-test install mysql-server mysql-devel',
-            require => Class['domysqldb::repoclient'],
-            before => Class['mysql::client'],
-          }
-          $package_name = undef
-        }
-        
-        ubuntu, debian: {
-          # MySQL 5.5 is default in 12.04
-          # but can't install with package because of mysql module conflict
-          # package { 'mysql-server' :
-          #   ensure => 'present',
-          # }->
-          exec { 'common-mysqldb-five-five-install' :
-            path => '/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin',
-            command => 'apt-get -y -q -o DPkg::Options::=--force-confold install mysql-server',
-            require => Class['domysqldb::repoclient'],
-            before => Class['mysql::client'],
-          }->
-          # install other packages (required for python pip installs)
-          package { 'libmysqlclient-dev' :
-            ensure => present,
-          }
-          $package_name = undef
-        }
-        
-        fedora: {
-          $package_name = 'mariadb-server'
-          exec { 'domysqldb-mysql-create-user-group-manually' :
-            path => '/bin:/usr/bin:/sbin:/usr/sbin',
-            command => 'groupadd mysql && useradd -r -g mysql mysql',
-            before => [Anchor['domysqldb-pre-server-install']],
-            # only add user if not already there
-            onlyif => 'test `/bin/egrep  -i "^mysql" /etc/passwd | wc -l` == 0',
-          }
-        }
-      }
+  # server (install packages only)
+  if ! defined(Class['domysqldb::server']) {
+    class { 'domysqldb::server':
+      db_type => $db_type,
+      db_version => $db_version,
+      require => [Class['domysqldb::repoclient']],
     }
   }
 
   # output debugging information
   notify { "debugpoint: domysqldb reads root_home as '${::root_home}'" : }
 
-  # configure mysql server
-  anchor { 'domysqldb-pre-server-install' : }
-  
   # ensure all the necessary directories exist (as directories or symlinks)
   docommon::createdir { ['/var/log/mysql', '/var/lib/mysql', '/var/lib/mysql/data']:
     owner => 'mysql',
