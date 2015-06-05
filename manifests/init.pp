@@ -4,11 +4,11 @@ class domysqldb (
   # ---------------
   # setup defaults
 
-  # type can be 'percona' or 'mariadb'
+  # type can be 'mysql', 'percona' or 'mariadb'
   $db_type = 'mysql',
 
-  # version can be 55 or 56, though not all types are supported
-  $db_version = '55',
+  # version can be '5.5' or '5.6', though not all types are supported
+  $db_version = '5.5',
 
   $root_password = 'admLn**',
   $dbs = {},

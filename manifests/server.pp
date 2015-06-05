@@ -7,8 +7,8 @@ class domysqldb::server (
   # type can be 'mysql', 'percona' or 'mariadb'
   $db_type = 'mysql',
 
-  # version can be 55 or 56, though not all types are supported
-  $db_version = '55',
+  # version can be 5.5 or 5.6, though not all types are supported
+  $db_version = '5.5',
 
   # end of class arguments
   # ----------------------
@@ -20,7 +20,7 @@ class domysqldb::server (
     mysql: {
 
       case $db_version {
-        '55': {
+        '5.5': {
 
           case $operatingsystem {
             centos, redhat: {
@@ -61,9 +61,9 @@ class domysqldb::server (
               }
             } # /fedora 
           } # /operatingsystem
-        } # /55
+        } # /5.5
 
-        '56': {
+        '5.6': {
 
           case $operatingsystem {
             centos, redhat: {

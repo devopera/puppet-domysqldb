@@ -4,11 +4,11 @@ class domysqldb::repoclient (
   # ---------------
   # setup defaults
 
-  # type can be 'percona' or 'mariadb'
+  # type can be 'mysql', 'percona' or 'mariadb'
   $db_type = 'mysql',
 
-  # version can be 55 or 56, though not all types are supported
-  $db_version = '55',
+  # version can be '5.5' or '5.6', though not all types are supported
+  $db_version = '5.5',
 
   # end of class arguments
   # ----------------------
@@ -20,7 +20,7 @@ class domysqldb::repoclient (
     mysql: {
 
       case $db_version {
-        '55': {
+        '5.5': {
           # install REMI repository to get MySQL 5.5 on Centos 6
           case $operatingsystem {
             centos, redhat: {
@@ -46,9 +46,9 @@ class domysqldb::repoclient (
               $package_name = undef
             }
           } # /operatingsystem
-        } # /55
+        } # /5.5
 
-        '56': {
+        '5.6': {
           # install MySQL repository to get MySQL 5.6 on Centos
           case $operatingsystem {
             centos, redhat: {
@@ -56,8 +56,7 @@ class domysqldb::repoclient (
                 path => '/usr/bin:/bin',
                 command => 'rpm -Uvh http://repo.mysql.com/mysql-community-release-el6.rpm',
                 user => 'root',
-                # @todo see what this created in yum.repos.d, then edit below
-                # creates => '/etc/yum.repos.d/remi.repo',
+                creates => '/etc/yum.repos.d/mysql-community.repo',
               }->
               exec { "domysqldb-install-clientonly-${db_version}" :
                 path => '/usr/bin:/bin',
@@ -67,7 +66,7 @@ class domysqldb::repoclient (
               $package_name = undef
             }
           } # /operatingsystem
-        } # /56
+        } # /5.6
       } # /db_version
     } # /mysql
   } # /db_type
