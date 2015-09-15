@@ -49,6 +49,9 @@ class domysqldb (
       'innodb_file_per_table'     => 1,
       # MyISAM (throws error in Ubuntu 14.04)
       # 'myisam_recover_options'    => 'FORCE,BACKUP',
+      # Default databases
+      'collation-server'          => 'utf8_general_ci',
+      'character-set-server'      => 'utf8',
       # Safety
       'skip_name_resolve'         => true,
       'sysdate_is_now'            => 1,
