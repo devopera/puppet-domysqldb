@@ -235,8 +235,8 @@ class domysqldb (
   # manually remove insecure accounts
   mysql_user {
     [ "root@${::fqdn}",
-      # do remove root@127.0.0.1
-      'root@127.0.0.1',
+      # don't remove root@127.0.0.1
+      # 'root@127.0.0.1',
       'root@::1',
       "@${::fqdn}",
       '@localhost',
@@ -263,10 +263,11 @@ class domysqldb (
   # create databases
   create_resources(mysql::db, $dbs, $dbs_default)
 
-  # flag mysqld as a sensitive service
-  Service <| title == 'mysqld' |> {
-    tag => 'service-sensitive',
-  }
+  # TEMPORARY DISABLE: flag mysqld as a sensitive service
+  # because mysql upgrade refreshes service and loses auto-restart
+#  Service <| title == 'mysqld' |> {
+#    tag => 'service-sensitive',
+#  }
 
   # make sure we've really finished atomically
   anchor { 'domysqldb-finished' : }
