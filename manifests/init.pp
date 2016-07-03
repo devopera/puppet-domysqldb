@@ -85,7 +85,7 @@ class domysqldb (
   # ----------------------
   # begin class
 
-) {
+) inherits domysqldb::params {
 
   # setup dynamic variables
   # generate dynamic buffer_pool_size if not set
@@ -167,6 +167,8 @@ class domysqldb (
   # selected my.cnf settings are overriden later by /etc/mysql/conf.d/ or /etc/my.cnf.d/ files
   class { 'mysql::server': 
     package_name => $package_name,
+    # service name incorrect for CentOS7!maria, so use ours
+    service_name => $domysqldb::params::service_name,
     # don't set the root password because it conflicts with pre-set root passwords and wipes root@localhost grants
     root_password => 'UNSET',
     # don't remove default accounts because it conflicts as above (also wipes out root@127.0.0.1 which we need for tunnelled connections)

@@ -14,7 +14,7 @@ class domysqldb::server (
   # ----------------------
   # begin class
 
-) {
+) inherits domysqldb::params {
 
   case $db_type {
     mysql: {

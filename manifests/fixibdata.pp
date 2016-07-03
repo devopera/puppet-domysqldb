@@ -10,7 +10,9 @@ class domysqldb::fixibdata (
 
   $target_dir = '/tmp',
   $data_dir = $::mysql::params::datadir,
-  $service_name = $::mysql::params::server_service_name,
+  # server_service_name incorrectly assumes mariadb for CentOS/RHEL7
+  # $service_name = $::mysql::params::server_service_name,
+  $service_name = 'mysqld',
 
 ) {
 
