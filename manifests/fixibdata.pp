@@ -23,10 +23,13 @@ class domysqldb::fixibdata (
   #   create a timestamped folder
   #   move the old ibdata files into it
   #   restart the service
+
+  # disabled becuause not compatible with RHEL7
   exec { 'domysqldb-scrub-old-binlog-wrong-size' :
     path => '/bin:/usr/bin:/sbin:/usr/sbin',
     command => "service ${service_name} stop > /dev/null 2>&1 ; mkdir ${target_dir}/puppet_ibdata_${datetime} && mv ${data_dir}/ib_logfile* ${target_dir}/puppet_ibdata_${datetime}/ && mv ${data_dir}/ibdata* ${target_dir}/puppet_ibdata_${datetime}/ && service ${service_name} start",
-    onlyif => "test `stat -c \'%s\' ${data_dir}/ib_logfile0` -ne ${new_size}",
+    # onlyif => "test `stat -c \'%s\' ${data_dir}/ib_logfile0` -ne ${new_size}",
+    onlyif => false,
   }
   
 }

@@ -180,15 +180,15 @@ class domysqldb (
 
   # cover the case where MySQL was started before /etc/my.cnf was created
   if ($innodb_log_file_size_bytes != undef) {
-    class { 'domysqldb::fixibdata' :
-      new_size => $innodb_log_file_size_bytes,
-      before => [Anchor['domysqldb-mysql-up-for-internal']],
-    }
+    # class { 'domysqldb::fixibdata' :
+    #   new_size => $innodb_log_file_size_bytes,
+    #  before => [Anchor['domysqldb-mysql-up-for-internal']],
+    #}
 
     # setup order
-    Class['mysql::server::config'] ->
-    Class['domysqldb::fixibdata'] ->
-    Class['mysql::server::service']
+    #Class['mysql::server::config'] ->
+    #Class['domysqldb::fixibdata'] ->
+    #Class['mysql::server::service']
   }
   
   anchor { 'domysqldb-mysql-up-for-internal' : }
