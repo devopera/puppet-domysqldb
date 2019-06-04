@@ -31,14 +31,14 @@ class domysqldb (
       # 'port'                      => 3306,
       # 'default_storage_engine'    => 'innodb',
       # 'socket'                    => '/var/lib/mysql/data/mysql.sock',
-      # 'pid_file'                  => '/var/run/mysqld/data/mysql.pid',
       # 'datadir'                   => '/var/lib/mysql/data/',
       # 'basedir'                   => '/usr',
       # 'tmpdir'                    => '/tmp',
       # 'skip-external-locking'     => true,
-      # 'bind-address'              => '127.0.0.1',
       # 'expire_logs_days'          => 14,
       #
+      'bind-address'              => '127.0.0.1',
+      'pid_file'                  => '/var/run/mysqld/data/mysql.pid',
       'key_buffer_size'           => '32M',
       'log_error'                 => '/var/log/mysql/error.log',
       # INNODB
@@ -199,6 +199,13 @@ class domysqldb (
     # command => "mysqladmin -u root password '${root_password}'; mysql -u root --password='${root_password}' -NBe \"GRANT ALL ON *.* TO 'root'@'localhost' IDENTIFIED BY '${root_password}' WITH GRANT OPTION\"",
     # use root's .my.cnf only if one exists (2,3..nth run)
     command => "[ -f '/root/.my.cnf' ] && mysqladmin --defaults-extra-file=/root/.my.cnf -u root password '${root_password}' || mysqladmin -u root password '${root_password}'",
+    require => [Class['mysql::server'], Anchor['domysqldb-mysql-up-for-internal']],
+  }->
+
+  # fix missing !includedir directive
+  exec { 'domysqldb-fix-missing-includedir' :
+    path => '/bin:/usr/bin:/sbin:/usr/sbin',
+    command => "grep -qxF '!includedir /etc/my.cnf.d/' /etc/my.cnf || echo '!includedir /etc/my.cnf.d/' >> /etc/my.cnf",
     require => [Class['mysql::server'], Anchor['domysqldb-mysql-up-for-internal']],
   }->
   
